@@ -1,0 +1,804 @@
+{
+  "name": "Flowmatic — Complete Recruitment Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.parse($json.groqBody) }}",
+        "options": {}
+      },
+      "id": "a7345298-a918-418f-8f52-b36c56ec9ed4",
+      "name": "7 - Groq AI Analyze CV",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -448,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1oR_D1H562sX4gunMQYrTXICVpc0OnhuOb8nwda2xrt0",
+          "mode": "list",
+          "cachedResultName": "JOB HIRING candidates Form (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1oR_D1H562sX4gunMQYrTXICVpc0OnhuOb8nwda2xrt0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 508572554,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1oR_D1H562sX4gunMQYrTXICVpc0OnhuOb8nwda2xrt0/edit#gid=508572554"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "id": "73ce0085-1499-44a7-85a0-e4da5df16bf8",
+      "name": "1 - Google Sheet Trigger1",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1504,
+        128
+      ],
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "0teXKyOx482mZTdV",
+          "name": "Google Sheets Trigger OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.cvFileUrl.split('id=')[1] }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "c0d91801-f42f-4436-a862-08a8d338f13f",
+      "name": "4 - Save CV to Drive1",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -1216,
+        432
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "R3h6qNnkL8caPYKt",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "id": "17ef3922-a477-4a1e-a2ba-88facb012fc4",
+      "name": "5 - Extract Text from CV1",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cvText = $input.first().json.text || '';\nconst applicant = $('2 - Extract Form Data').first().json;\nreturn [{ json: { \n  ...applicant, \n  cvText: cvText,\n  fullName: applicant.fullName,\n  email: applicant.email,\n  phone: applicant.phone,\n  jobPosition: applicant.jobPosition\n}}];"
+      },
+      "id": "05c07029-8f8c-4eb2-9288-2aed1ecfaf76",
+      "name": "6 - Merge All Data1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -816,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiResponse = $input.first().json.choices[0].message.content;\nconst cleaned = aiResponse.replace(/```json|```/g, '').trim();\nconst ai = JSON.parse(cleaned);\nconst applicant = $('6 - Merge All Data1').first().json;\nreturn [{ json: { ...applicant, ...ai } }];"
+      },
+      "id": "11d977d4-3b0a-4a52-8e4d-010b149f4029",
+      "name": "8 - Parse AI Result1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json.decision }}",
+              "rightValue": "ELIGIBLE",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "769414e8-9e9b-499d-a17a-d9f6e2f2833d",
+      "name": "9 - Eligible or Not?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const applicant = $input.first().json;\n\nconst now = new Date();\n// Pakistan timezone offset (+5)\nconst pkOffset = 5 * 60 * 60 * 1000;\nconst pkNow = new Date(now.getTime() + pkOffset);\n\nlet d = new Date(pkNow);\nd.setDate(pkNow.getDate() + 3);\nwhile (d.getDay() === 0 || d.getDay() === 6) { \n  d.setDate(d.getDate() + 1); \n}\nd.setUTCHours(5, 0, 0, 0); // 10am PKT = 5am UTC\n\nconst end = new Date(d);\nend.setUTCHours(5, 45, 0, 0);\n\nreturn [{ json: {\n  ...applicant,\n  interviewStart: d.toISOString(),\n  interviewEnd: end.toISOString(),\n  interviewDateFormatted: d.toLocaleDateString('en-US', { \n    weekday:'long', year:'numeric', month:'long', day:'numeric', \n    hour:'2-digit', minute:'2-digit', timeZone:'Asia/Karachi' \n  })\n}}];"
+      },
+      "id": "abcee545-5558-4ee9-9a16-735afe1321de",
+      "name": "10 - Generate Interview Date1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1oR_D1H562sX4gunMQYrTXICVpc0OnhuOb8nwda2xrt0",
+          "mode": "list",
+          "cachedResultName": "JOB HIRING candidates Form (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1oR_D1H562sX4gunMQYrTXICVpc0OnhuOb8nwda2xrt0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1800551735,
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1oR_D1H562sX4gunMQYrTXICVpc0OnhuOb8nwda2xrt0/edit#gid=1800551735"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Full Name": "={{ $json.fullName }}",
+            "Email": "={{ $json.email }}",
+            "Phone": "={{ $json.phone }}",
+            "Job Position": "={{ $json.jobPosition }}",
+            "Strength 1": "={{ $json.strengths[0] }}",
+            "Strength 2": "={{ $json.strengths[1] }}",
+            "Strength 3": "={{ $json.strengths[2] }}",
+            "AI Reason": "={{ $json.reason }}",
+            "Submitted At": "={{ $json.submittedAt }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Full Name",
+              "displayName": "Full Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Position",
+              "displayName": "Job Position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Strength 1",
+              "displayName": "Strength 1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Strength 2",
+              "displayName": "Strength 2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Strength 3",
+              "displayName": "Strength 3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Reason",
+              "displayName": "AI Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Submitted At",
+              "displayName": "Submitted At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "c89125d5-26f5-4dd3-b320-38038362cf9e",
+      "name": "11 - Sheet Selected1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        400,
+        368
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "omOKG4SeDbJqowv8",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list",
+          "cachedResultName": "primary"
+        },
+        "start": "={{ $('10 - Generate Interview Date1').first().json.interviewStart }}",
+        "end": "={{ $('10 - Generate Interview Date1').first().json.interviewEnd }}",
+        "additionalFields": {
+          "attendees": "={{ $json.email }}",
+          "description": "=Candidate: {{ $json['Full Name'] }}\nEmail: {{ $json['Email'] }}\nPhone: {{ $json['Phone'] }}\nPosition: {{ $json['Job Position'] }}\n\nStrengths:\n- {{ $json['Strength 1'] }}\n- {{ $json['Strength 2'] }}\n- {{ $json['Strength 3'] }}\n\nNotes: {{ $json.reason }}",
+          "summary": "=Interview: {{ $json['Full Name'] }} — {{ $json['Job Position'] }}"
+        }
+      },
+      "id": "099f4b98-6542-412c-891f-a84d069de555",
+      "name": "12 - Google Calendar Event1",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        624,
+        368
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "QcZsLZyFNDgoPLDX",
+          "name": "Google Calendar OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('8 - Parse AI Result1').first().json.email }}",
+        "subject": "=Congratulations! Shortlisted for the position of {{ $('9 - Eligible or Not?1').first().json.jobPosition }}",
+        "message": "=<html><body style='font-family:Arial,sans-serif;color:#333;max-width:600px;margin:0 auto;padding:20px;'>\n<h2 style='color:#1a3c5e;'>Congratulations, {{ $('8 - Parse AI Result1').first().json.fullName }}!</h2>\n<p>You have been <strong>shortlisted</strong> for <strong>{{ $('8 - Parse AI Result1').first().json.jobPosition }}</strong>.</p>\n<h3 style='color:#0f6e56;'>Why You Were Selected</h3>\n<p>{{ $('8 - Parse AI Result1').first().json.strengthsSummary }}</p>\n<h3 style='color:#1a3c5e;'>Interview Details</h3>\n<p><strong>Date:</strong> {{ $('10 - Generate Interview Date1').first().json.interviewDateFormatted }}</p>\n<p><strong>Duration:</strong> 45 minutes</p>\n<p><strong>Format:</strong> Video Call — link will follow</p>\n<p>Please confirm by replying to this email.</p>\n<p style='color:#888;font-size:12px;'>Best regards,<br><strong>HR Team</strong></p>\n</body></html>",
+        "options": {}
+      },
+      "id": "e8a72072-c3b4-46f0-a202-69f100feb079",
+      "name": "13 - Gmail Selected1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        832,
+        368
+      ],
+      "webhookId": "2a69c3bf-c978-41f2-8b1d-330c89f3933e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JaqPJZaci4NqoRYO",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1oR_D1H562sX4gunMQYrTXICVpc0OnhuOb8nwda2xrt0",
+          "mode": "list",
+          "cachedResultName": "JOB HIRING candidates Form (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1oR_D1H562sX4gunMQYrTXICVpc0OnhuOb8nwda2xrt0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2097736383,
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1oR_D1H562sX4gunMQYrTXICVpc0OnhuOb8nwda2xrt0/edit#gid=2097736383"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Submitted At": "={{ $json.submittedAt }}",
+            "AI Reason": "={{ $json.reason }}",
+            "Weakness 3": "={{ $json.weaknesses[2] }}",
+            "Weakness 2": "={{ $json.weaknesses[1] }}",
+            "Weakness 1": "={{ $json.weaknesses[0] }}",
+            "Job Position": "={{ $json.jobPosition }}",
+            "Phone": "={{ $json.phone }}",
+            "Email": "={{ $json.email }}",
+            "Full Name": "={{ $json.fullName }}"
+          },
+          "matchingColumns": [
+            "ID"
+          ],
+          "schema": [
+            {
+              "id": "Full Name",
+              "displayName": "Full Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Job Position",
+              "displayName": "Job Position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Weakness 1",
+              "displayName": "Weakness 1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Weakness 2",
+              "displayName": "Weakness 2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Weakness 3",
+              "displayName": "Weakness 3",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Reason",
+              "displayName": "AI Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Submitted At",
+              "displayName": "Submitted At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "2933d4bd-cbbc-4b85-930c-59cb7b24d918",
+      "name": "14 - Sheet Rejected1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        176,
+        544
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "omOKG4SeDbJqowv8",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('9 - Eligible or Not?1').first().json.email }}",
+        "subject": "={{ $('9 - Eligible or Not?1').first().json.jobPosition }}",
+        "message": "=<html><body style='font-family:Arial,sans-serif;color:#333;max-width:600px;margin:0 auto;padding:20px;'><h2 style='color:#1a3c5e;'>Dear {{ $('9 - Eligible or Not?1').first().json.fullName }}\n,</h2><p>Thank you for applying for the position of <strong>{{ $('9 - Eligible or Not?1').first().json.weaknessesSummary }}</strong>.</p><p>After a thorough review, we regret to inform you that we will not be moving forward with your candidacy at this time.</p><h3 style='color:#8b4513;'>Feedback for Your Growth</h3><p>{{ $json.weaknessesSummary }}</p><p>We encourage you to keep developing your skills and welcome you to apply again in the future.</p><p style='color:#888;font-size:12px;margin-top:30px;'>With kind regards,<br><strong>HR Team</strong></p></body></html>",
+        "options": {}
+      },
+      "id": "69eaec96-029c-4b37-9181-56e5b58627c8",
+      "name": "15 - Gmail Rejected1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        384,
+        544
+      ],
+      "webhookId": "3f3f9396-bbc7-4481-949e-07e344d465b2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "JaqPJZaci4NqoRYO",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst safeCvText = (data.cvText || '')\n  .replace(/[\\x00-\\x1F\\x7F]/g, ' ')\n  .replace(/\"/g, '\\\\\"')\n  .trim();\n\nconst safeJobPosition = (data.jobPosition || '').replace(/\"/g, '\\\\\"');\nconst safeFullName = (data.fullName || '').replace(/\"/g, '\\\\\"');\n\nconst body = {\n  model: \"llama-3.3-70b-versatile\",\n  max_tokens: 1200,\n  temperature: 0.3,\n  messages: [\n    {\n      role: \"system\",\n      content: \"You are a professional HR recruitment specialist. You analyze CVs and respond ONLY in valid JSON format. No extra text, no markdown, no backticks. Just raw JSON.\"\n    },\n    {\n      role: \"user\",\n      content: `Job Position: ${safeJobPosition}\\nApplicant: ${safeFullName}\\n\\nCV Content:\\n${safeCvText}\\n\\nAnalyze this CV and respond ONLY in this exact JSON format:\\n{\"decision\": \"ELIGIBLE\" or \"NOT_ELIGIBLE\",\"strengths\": [\"s1\",\"s2\",\"s3\"],\"weaknesses\": [\"w1\",\"w2\",\"w3\"],\"reason\": \"2 sentence reason.\",\"strengthsSummary\": \"Warm 2-3 sentence paragraph.\",\"weaknessesSummary\": \"Polite 2-3 sentence paragraph.\"}`\n    }\n  ]\n};\n\nreturn [{ json: { ...data, groqBody: JSON.stringify(body) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        432
+      ],
+      "id": "d52ec69c-b4bd-480b-967d-b8e4c7c47b35",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = $input.first().json;\n\n// Google Drive share URL ko direct download URL mein convert karo\nconst rawUrl = row['Upload CV'] || '';\nlet downloadUrl = '';\n\nif (rawUrl.includes('drive.google.com')) {\n  // Format: https://drive.google.com/open?id=FILE_ID\n  // Ya: https://drive.google.com/file/d/FILE_ID/view\n  let fileId = '';\n  \n  if (rawUrl.includes('/file/d/')) {\n    fileId = rawUrl.split('/file/d/')[1].split('/')[0];\n  } else if (rawUrl.includes('id=')) {\n    fileId = rawUrl.split('id=')[1].split('&')[0];\n  } else if (rawUrl.includes('open?id=')) {\n    fileId = rawUrl.split('open?id=')[1].split('&')[0];\n  }\n  \n  downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;\n} else {\n  downloadUrl = rawUrl;\n}\n\nreturn [{ json: {\n  fullName:    row['Full Name'] || '',\n  email:       row['Email'] || '',\n  phone:       row['Phone Number'] || '',\n  jobPosition: row['Job Position'] || '',\n  cvFileUrl:   row['Upload CV '] || '',\n  submittedAt: row['Timestamp'] || new Date().toISOString()\n}}];"
+      },
+      "id": "c3b69f16-2d36-4e3d-aa44-20f6f2455b33",
+      "name": "2 - Extract Form Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1296,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.cvFileUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "cvFile"
+            }
+          }
+        }
+      },
+      "id": "bf51bb89-406b-42ff-a849-30a4079c279f",
+      "name": "3 - Download CV File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1456,
+        448
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "7 - Groq AI Analyze CV": {
+      "main": [
+        [
+          {
+            "node": "8 - Parse AI Result1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1 - Google Sheet Trigger1": {
+      "main": [
+        [
+          {
+            "node": "2 - Extract Form Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4 - Save CV to Drive1": {
+      "main": [
+        [
+          {
+            "node": "5 - Extract Text from CV1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5 - Extract Text from CV1": {
+      "main": [
+        [
+          {
+            "node": "6 - Merge All Data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6 - Merge All Data1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8 - Parse AI Result1": {
+      "main": [
+        [
+          {
+            "node": "9 - Eligible or Not?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9 - Eligible or Not?1": {
+      "main": [
+        [
+          {
+            "node": "10 - Generate Interview Date1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "14 - Sheet Rejected1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "10 - Generate Interview Date1": {
+      "main": [
+        [
+          {
+            "node": "11 - Sheet Selected1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11 - Sheet Selected1": {
+      "main": [
+        [
+          {
+            "node": "12 - Google Calendar Event1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "12 - Google Calendar Event1": {
+      "main": [
+        [
+          {
+            "node": "13 - Gmail Selected1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "14 - Sheet Rejected1": {
+      "main": [
+        [
+          {
+            "node": "15 - Gmail Rejected1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "7 - Groq AI Analyze CV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2 - Extract Form Data": {
+      "main": [
+        [
+          {
+            "node": "3 - Download CV File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3 - Download CV File": {
+      "main": [
+        [
+          {
+            "node": "4 - Save CV to Drive1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "244df670-b5f3-4e79-a1b8-806298eeee0c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3d8c82d7c1367d7ed4d1a22c948b1f40aab034344226ee303cc3f76dc5a1c16e"
+  },
+  "id": "9dlRtIzGzCYYjcYF",
+  "tags": [
+    {
+      "updatedAt": "2026-06-09T19:51:48.055Z",
+      "createdAt": "2026-06-09T19:51:48.055Z",
+      "id": "45cyxeJhIlwaOfJy",
+      "name": "Flowmatic Studio"
+    },
+    {
+      "updatedAt": "2026-06-09T19:51:48.081Z",
+      "createdAt": "2026-06-09T19:51:48.081Z",
+      "id": "XsttAWsH3PA8BaHW",
+      "name": "Recruitment Automation"
+    }
+  ]
+}
